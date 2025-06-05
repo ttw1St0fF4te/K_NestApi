@@ -1,34 +1,57 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Post, Param, Delete, UseGuards, Session, NotFoundException, Patch } from '@nestjs/common';
 import { CartItemsService } from './cart-items.service';
-import { CreateCartItemDto } from './dto/create-cart-item.dto';
-import { UpdateCartItemDto } from './dto/update-cart-item.dto';
+import { AuthenticatedGuard } from '../auth/authenticated.guard';
 
 @Controller('cart-items')
+@UseGuards(AuthenticatedGuard)
 export class CartItemsController {
   constructor(private readonly cartItemsService: CartItemsService) {}
 
-  @Post()
-  create(@Body() createCartItemDto: CreateCartItemDto) {
-    return this.cartItemsService.create(createCartItemDto);
+  @Post('add/:productId')
+  async addToCart(
+    @Session() session: Record<string, any>,
+    @Param('productId') productId: string
+  ) {
+    if (!session.passport?.user?.id) {
+      throw new NotFoundException('Пользователь не найден в сессии');
+    }
+
+    const cartItem = await this.cartItemsService.addToCart(
+      session.passport.user.id,
+      +productId
+    );
+
+    return {
+      success: true,
+      cartItem
+    };
   }
 
-  @Get()
-  findAll() {
-    return this.cartItemsService.findAll();
+  @Patch(':id/increase')
+  async increaseQuantity(@Param('id') id: string) {
+    const cartItem = await this.cartItemsService.increaseQuantity(+id);
+    return {
+      success: true,
+      newQuantity: cartItem.quantity,
+      itemTotal: cartItem.quantity * parseFloat(cartItem.product.price)
+    };
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.cartItemsService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCartItemDto: UpdateCartItemDto) {
-    return this.cartItemsService.update(+id, updateCartItemDto);
+  @Patch(':id/decrease')
+  async decreaseQuantity(@Param('id') id: string) {
+    const cartItem = await this.cartItemsService.decreaseQuantity(+id);
+    return {
+      success: true,
+      newQuantity: cartItem.quantity,
+      itemTotal: cartItem.quantity * parseFloat(cartItem.product.price)
+    };
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.cartItemsService.remove(+id);
+  async remove(@Param('id') id: string) {
+    await this.cartItemsService.remove(+id);
+    return {
+      success: true
+    };
   }
 }

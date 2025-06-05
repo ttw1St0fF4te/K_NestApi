@@ -1,34 +1,77 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Session, ParseIntPipe } from '@nestjs/common';
 import { OrderItemsService } from './order-items.service';
 import { CreateOrderItemDto } from './dto/create-order-item.dto';
 import { UpdateOrderItemDto } from './dto/update-order-item.dto';
+import { AuthenticatedGuard } from '../auth/authenticated.guard';
 
 @Controller('order-items')
+@UseGuards(AuthenticatedGuard)
 export class OrderItemsController {
   constructor(private readonly orderItemsService: OrderItemsService) {}
 
   @Post()
-  create(@Body() createOrderItemDto: CreateOrderItemDto) {
-    return this.orderItemsService.create(createOrderItemDto);
+  async create(@Body() createOrderItemDto: CreateOrderItemDto) {
+    const orderItem = await this.orderItemsService.create(createOrderItemDto);
+    return {
+      success: true,
+      orderItem
+    };
   }
 
   @Get()
-  findAll() {
-    return this.orderItemsService.findAll();
+  async findAll() {
+    const orderItems = await this.orderItemsService.findAll();
+    return {
+      success: true,
+      orderItems
+    };
+  }
+
+  @Get('order/:orderId')
+  async findByOrderId(@Param('orderId', ParseIntPipe) orderId: number) {
+    const orderItems = await this.orderItemsService.findByOrderId(orderId);
+    return {
+      success: true,
+      orderItems
+    };
+  }
+
+  @Get('order/:orderId/total')
+  async getOrderTotal(@Param('orderId', ParseIntPipe) orderId: number) {
+    const total = await this.orderItemsService.getOrderTotal(orderId);
+    return {
+      success: true,
+      total
+    };
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.orderItemsService.findOne(+id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const orderItem = await this.orderItemsService.findOne(id);
+    return {
+      success: true,
+      orderItem
+    };
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateOrderItemDto: UpdateOrderItemDto) {
-    return this.orderItemsService.update(+id, updateOrderItemDto);
+  async update(
+    @Param('id', ParseIntPipe) id: number, 
+    @Body() updateOrderItemDto: UpdateOrderItemDto
+  ) {
+    const orderItem = await this.orderItemsService.update(id, updateOrderItemDto);
+    return {
+      success: true,
+      orderItem
+    };
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.orderItemsService.remove(+id);
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    await this.orderItemsService.remove(id);
+    return {
+      success: true,
+      message: 'Элемент заказа успешно удален'
+    };
   }
 }

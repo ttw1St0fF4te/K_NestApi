@@ -1,30 +1,39 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Session, NotFoundException } from '@nestjs/common';
 import { CartsService } from './carts.service';
 import { CreateCartDto } from './dto/create-cart.dto';
 import { UpdateCartDto } from './dto/update-cart.dto';
+import { CartResponseDto } from './dto/cart-response.dto';
+import { AuthenticatedGuard } from '../auth/authenticated.guard';
 
 @Controller('carts')
+@UseGuards(AuthenticatedGuard)
 export class CartsController {
   constructor(private readonly cartsService: CartsService) {}
 
-  @Post()
-  create(@Body() createCartDto: CreateCartDto) {
-    return this.cartsService.create(createCartDto);
-  }
+  @Get('my-cart')
+  async getMyCart(@Session() session: Record<string, any>): Promise<CartResponseDto> {
+    if (!session.passport?.user?.id) {
+      throw new NotFoundException('Пользователь не найден в сессии');
+    }
 
-  @Get()
-  findAll() {
-    return this.cartsService.findAll();
+    const cart = await this.cartsService.findByUserId(session.passport.user.id);
+    const totalAmount = await this.cartsService.calculateTotal(cart);
+
+    return {
+      ...cart,
+      totalAmount
+    };
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.cartsService.findOne(+id);
-  }
+  async findOne(@Param('id') id: string): Promise<CartResponseDto> {
+    const cart = await this.cartsService.findOne(+id);
+    const totalAmount = await this.cartsService.calculateTotal(cart);
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCartDto: UpdateCartDto) {
-    return this.cartsService.update(+id, updateCartDto);
+    return {
+      ...cart,
+      totalAmount
+    };
   }
 
   @Delete(':id')

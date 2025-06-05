@@ -1,34 +1,86 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Session, NotFoundException } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
+import { AuthenticatedGuard } from '../auth/authenticated.guard';
+import { CheckoutResponseDto } from './dto/checkout-response.dto';
 
 @Controller('orders')
+@UseGuards(AuthenticatedGuard)
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
-  @Post()
-  create(@Body() createOrderDto: CreateOrderDto) {
-    return this.ordersService.create(createOrderDto);
+  @Get('checkout')
+  async getCheckoutInfo(@Session() session: Record<string, any>): Promise<CheckoutResponseDto> {
+    if (!session.passport?.user?.id) {
+      throw new NotFoundException('Пользователь не найден в сессии');
+    }
+
+    return this.ordersService.getCheckoutInfo(session.passport.user.id);
   }
 
-  @Get()
-  findAll() {
-    return this.ordersService.findAll();
+  @Post()
+  async createOrder(
+    @Session() session: Record<string, any>,
+    @Body() createOrderDto: CreateOrderDto
+  ) {
+    if (!session.passport?.user?.id) {
+      throw new NotFoundException('Пользователь не найден в сессии');
+    }
+
+    const order = await this.ordersService.createOrder(
+      session.passport.user.id,
+      createOrderDto
+    );
+
+    return {
+      success: true,
+      orderId: order.id,
+      message: 'Заказ успешно оформлен! Спасибо за покупку!'
+    };
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.ordersService.findOne(+id);
+  async getOrderConfirmation(
+    @Session() session: Record<string, any>,
+    @Param('id') id: string
+  ) {
+    if (!session.passport?.user?.id) {
+      throw new NotFoundException('Пользователь не найден в сессии');
+    }
+
+    return this.ordersService.findOne(+id, session.passport.user.id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
-    return this.ordersService.update(+id, updateOrderDto);
+  @Get()
+  async getUserOrders(@Session() session: Record<string, any>) {
+    if (!session.passport?.user?.id) {
+      throw new NotFoundException('Пользователь не найден в сессии');
+    }
+
+    const orders = await this.ordersService.findUserOrders(session.passport.user.id);
+    return {
+      success: true,
+      orders
+    };
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.ordersService.remove(+id);
+  @Get(':id/details')
+  async getOrderWithItems(
+    @Session() session: Record<string, any>,
+    @Param('id') id: string
+  ) {
+    if (!session.passport?.user?.id) {
+      throw new NotFoundException('Пользователь не найден в сессии');
+    }
+
+    const orderDetails = await this.ordersService.getOrderWithItems(
+      +id, 
+      session.passport.user.id
+    );
+    
+    return {
+      success: true,
+      order: orderDetails
+    };
   }
 }
