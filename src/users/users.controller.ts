@@ -1,9 +1,12 @@
-import { Controller, Get, Post, Body, HttpCode, HttpStatus, Res, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, HttpCode, HttpStatus, Res, Request, UseGuards, Param, Put } from '@nestjs/common';
 import { Response } from 'express';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdateContactDataDto } from './dto/update-contact-data.dto';
+import { LoyaltyProgramResponseDto } from './dto/loyalty-program-response.dto';
+import { WalletResponseDto } from './dto/wallet-response.dto';
 import { LocalAuthGuard } from '../auth/local-auth.guard';
 import { AuthenticatedGuard } from '../auth/authenticated.guard';
 
@@ -51,5 +54,40 @@ export class UsersController {
       res.clearCookie('connect.sid');
       res.json({ message: 'Выход успешен' });
     });
+  }
+
+  @UseGuards(AuthenticatedGuard)
+  @Put('update-contact-data')
+  @HttpCode(HttpStatus.OK)
+  async updateContactData(@Request() req, @Body() updateContactDataDto: UpdateContactDataDto) {
+    return this.usersService.updateContactData(req.user.id, updateContactDataDto);
+  }
+
+  @UseGuards(AuthenticatedGuard)
+  @Get('loyalty-program')
+  @HttpCode(HttpStatus.OK)
+  async getLoyaltyProgram(@Request() req) {
+    return this.usersService.getLoyaltyProgram(req.user.id);
+  }
+
+  @UseGuards(AuthenticatedGuard)
+  @Get('wallet')
+  @HttpCode(HttpStatus.OK)
+  async getWallet(@Request() req) {
+    return this.usersService.getWallet(req.user.id);
+  }
+
+  @UseGuards(AuthenticatedGuard)
+  @Post('reset-password-from-profile')
+  @HttpCode(HttpStatus.OK)
+  async resetPasswordFromProfile(@Request() req) {
+    return this.usersService.resetPasswordFromProfile(req.user.id);
+  }
+
+  @UseGuards(AuthenticatedGuard)  
+  @Get('orders/:orderId/details')
+  @HttpCode(HttpStatus.OK)
+  async getOrderDetails(@Request() req, @Param('orderId') orderId: number) {
+    return this.usersService.getOrderDetails(req.user.id, +orderId);
   }
 }

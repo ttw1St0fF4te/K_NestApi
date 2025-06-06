@@ -10,23 +10,49 @@ export class EmailService {
     this.transporter = nodemailer.createTransport({
       host: this.configService.get('email.smtpServer'),
       port: this.configService.get('email.port'),
-      secure: this.configService.get('email.enableSsl'),
+      secure: this.configService.get('email.enableSsl'), // true for SSL
       auth: {
         user: this.configService.get('email.username'),
         pass: this.configService.get('email.password'),
       },
+      tls: {
+        rejectUnauthorized: false // Accept self-signed certificates
+      },
+      debug: true, // Enable debug output
+      logger: true // Log to console
     });
+
+    // Test connection on startup
+    this.verifyConnection();
+  }
+
+  private async verifyConnection(): Promise<void> {
+    try {
+      await this.transporter.verify();
+      console.log('✅ SMTP соединение успешно установлено');
+    } catch (error) {
+      console.error('❌ Ошибка подключения к SMTP серверу:', error);
+    }
   }
 
   async sendPasswordReset(email: string, newPassword: string): Promise<void> {
-    const emailBody = this.generatePasswordResetEmailBody(newPassword);
-    
-    await this.transporter.sendMail({
-      from: `"${this.configService.get('email.fromName')}" <${this.configService.get('email.fromEmail')}>`,
-      to: email,
-      subject: 'Восстановление пароля - MoeShop',
-      html: emailBody,
-    });
+    try {
+      const emailBody = this.generatePasswordResetEmailBody(newPassword);
+      console.log(`📧 Отправка email сброса пароля на ${email}`);
+      
+      const info = await this.transporter.sendMail({
+        from: `"${this.configService.get('email.fromName')}" <${this.configService.get('email.fromEmail')}>`,
+        to: email,
+        subject: 'Восстановление пароля - MoeShop',
+        html: emailBody,
+      });
+
+      console.log(`✅ Email сброса пароля успешно отправлен на ${email}`);
+      console.log('Message ID:', info.messageId);
+    } catch (error) {
+      console.error(`❌ Ошибка отправки email сброса пароля на ${email}:`, error);
+      throw error;
+    }
   }
 
   private generatePasswordResetEmailBody(newPassword: string): string {
@@ -64,18 +90,19 @@ export class EmailService {
   async sendOrderConfirmation(email: string, order: any): Promise<void> {
     try {
       const emailBody = this.generateOrderConfirmationEmailBody(order);
-      console.log(`Отправка email на ${email} для заказа #${order.id}`);
+      console.log(`📧 Отправка email на ${email} для заказа #${order.id}`);
 
-      await this.transporter.sendMail({
+      const info = await this.transporter.sendMail({
         from: `"${this.configService.get('email.fromName')}" <${this.configService.get('email.fromEmail')}>`,
         to: email,
         subject: `Подтверждение заказа #${order.id} - MoeShop`,
         html: emailBody,
       });
 
-      console.log(`Email успешно отправлен на ${email} для заказа #${order.id}`);
+      console.log(`✅ Email успешно отправлен на ${email} для заказа #${order.id}`);
+      console.log('Message ID:', info.messageId);
     } catch (error) {
-      console.error(`Ошибка отправки email на ${email} для заказа #${order.id}:`, error);
+      console.error(`❌ Ошибка отправки email на ${email} для заказа #${order.id}:`, error);
       throw error;
     }
   }
@@ -133,7 +160,7 @@ export class EmailService {
     sb.push(`<p style="font-size: 18px; margin: 5px 0;"><strong>Общая сумма: ${parseFloat(order.totalAmount).toFixed(2)} ₽</strong></p>`);
 
     if (order.walletUsed) {
-      sb.push(`<p style="color: #dc3545; margin: 5px 0;">Списано с кошелька: ${parseFloat(order.walletUsed).toFixed(2)} ₽</p>`);
+      sb.push(`<p style="color: #dc3545; margin: 5px 0;">Списано с кошельк: ${parseFloat(order.walletUsed).toFixed(2)} ₽</p>`);
     }
 
     if (order.walletEarned) {
