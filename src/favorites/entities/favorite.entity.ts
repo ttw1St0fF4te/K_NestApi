@@ -4,6 +4,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Column,
 } from "typeorm";
 import { Product } from "../../products/entities/product.entity";
 import { User } from "../../users/entities/user.entity";
@@ -14,13 +15,19 @@ export class Favorite {
   @PrimaryGeneratedColumn({ type: "integer", name: "Id" })
   id: number;
 
-  @ManyToOne(() => Product, (product) => product.favorites, {
+  @Column({ name: "ProductId", type: "integer" })
+  productId: number;
+
+  @Column({ name: "UserId", type: "integer" })
+  userId: number;
+
+  @ManyToOne(() => Product, {
     onDelete: "CASCADE",
   })
   @JoinColumn([{ name: "ProductId", referencedColumnName: "id" }])
   product: Product;
 
-  @ManyToOne(() => User, (user) => user.favorites, { onDelete: "CASCADE" })
+  @ManyToOne(() => User, { onDelete: "CASCADE" })
   @JoinColumn([{ name: "UserId", referencedColumnName: "id" }])
   user: User;
 }
