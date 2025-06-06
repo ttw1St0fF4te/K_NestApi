@@ -16,8 +16,10 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors({
-    origin: 'http://localhost:3000', // Разрешаем запросы с фронтенда
+    origin: true, // Разрешить все origins для разработки
     credentials: true, // Разрешаем отправку куки и заголовков аутентификации
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
   });
 
   // Session configuration

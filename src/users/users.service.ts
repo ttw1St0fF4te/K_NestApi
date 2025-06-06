@@ -31,23 +31,14 @@ export class UsersService {
       throw new BadRequestException('Пользователь с таким именем уже существует');
     }
 
-    // Validate username
+    // Additional validation for username format (letters and numbers only)
     if (!this.isValidUsername(createUserDto.username)) {
-      throw new BadRequestException('Имя пользователя должно содержать только буквы и цифры, максимум 20 символов');
+      throw new BadRequestException('Имя пользователя должно содержать только буквы и цифры');
     }
 
-    // Validate password
-    if (createUserDto.password.length < 6 || createUserDto.password.length > 50) {
-      throw new BadRequestException('Пароль должен быть от 6 до 50 символов');
-    }
-
+    // Check if passwords match
     if (createUserDto.password !== createUserDto.confirmPassword) {
       throw new BadRequestException('Пароли не совпадают');
-    }
-
-    // Validate email if provided
-    if (createUserDto.email && !this.isValidEmail(createUserDto.email)) {
-      throw new BadRequestException('Некорректный формат email адреса');
     }
 
     const user = this.usersRepository.create({
