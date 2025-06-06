@@ -145,7 +145,7 @@ export class OrderItemsService {
       } : undefined,
       order: orderItem.order ? {
         id: orderItem.order.id,
-        orderDate: orderItem.order.orderDate,
+        orderDate: orderItem.order.orderDate.toISOString(), // Преобразуем в ISO строку
         customerName: orderItem.order.customerName || undefined,
         totalAmount: orderItem.order.totalAmount
       } : undefined

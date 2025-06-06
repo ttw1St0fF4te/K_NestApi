@@ -14,7 +14,7 @@ export class OrderItemResponseDto {
   };
   order?: {
     id: number;
-    orderDate: Date;
+    orderDate: string; // Возвращаем как ISO строку для консистентности
     customerName?: string;
     totalAmount: string;
   };

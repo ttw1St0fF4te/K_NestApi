@@ -56,6 +56,10 @@ import { Favorite } from './favorites/entities/favorite.entity';
         ],
         autoLoadEntities: true,
         synchronize: false, // В продакшене должно быть false
+        timezone: 'UTC', // Явно указываем UTC для PostgreSQL
+        extra: {
+          timezone: 'UTC', // Дополнительная настройка для PostgreSQL
+        },
       }),
       inject: [ConfigService],
     }),
