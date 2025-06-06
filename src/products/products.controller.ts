@@ -1,11 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, NotFoundException, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, NotFoundException, UseGuards, Req } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { CatalogQueryDto } from './dto/catalog-query.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
 import { ProductDetailsResponseDto } from './dto/product-details-response.dto';
+import { ProductDetailsWithCartDto } from './dto/product-details-with-cart.dto';
 import { AuthenticatedGuard } from '../auth/authenticated.guard';
+import { Request } from 'express';
 
 @Controller('products')
 export class ProductsController {
@@ -60,6 +62,27 @@ export class ProductsController {
     
     if (!product) {
       throw new NotFoundException(`Продукт с ID ${id} не найден`);
+    }
+    
+    return product;
+  }
+
+  @Get(':id/details-with-cart')
+  async getDetailsWithCart(
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Query('inCart') inCart?: string
+  ): Promise<ProductDetailsWithCartDto> {
+    const userId = (req.user as any)?.id;
+    const product = await this.productsService.findOneWithDetailsAndCart(+id, userId);
+    
+    if (!product) {
+      throw new NotFoundException(`Продукт с ID ${id} не найден`);
+    }
+
+    // Если inCart передан в query параметрах, переопределяем значение
+    if (inCart !== undefined) {
+      product.inCart = inCart === 'true';
     }
     
     return product;

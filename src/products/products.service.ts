@@ -7,13 +7,20 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { CatalogQueryDto, SortBy, SortOrder } from './dto/catalog-query.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
 import { ProductDetailsResponseDto } from './dto/product-details-response.dto';
+import { ProductDetailsWithCartDto } from './dto/product-details-with-cart.dto';
 import { ReviewDto } from './dto/review.dto';
+import { CartItem } from '../cart-items/entities/cart-item.entity';
+import { Cart } from '../carts/entities/cart.entity';
 
 @Injectable()
 export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private productRepository: Repository<Product>,
+    @InjectRepository(CartItem)
+    private cartItemRepository: Repository<CartItem>,
+    @InjectRepository(Cart)
+    private cartRepository: Repository<Cart>,
   ) {}
 
   create(createProductDto: CreateProductDto) {
@@ -80,6 +87,44 @@ export class ProductsService {
     }
 
     return this.mapToDetailsResponseDto(product);
+  }
+
+  // Новый метод для получения деталей товара с информацией о корзине
+  async findOneWithDetailsAndCart(id: number, userId?: number): Promise<ProductDetailsWithCartDto | null> {
+    const product = await this.productRepository.findOne({
+      where: { id },
+      relations: ['reviews', 'reviews.user']
+    });
+
+    if (!product) {
+      return null;
+    }
+
+    let inCart = false;
+    
+    // Проверяем, если пользователь авторизован, есть ли товар в его корзине
+    if (userId) {
+      const userCart = await this.cartRepository.findOne({
+        where: { userId }
+      });
+
+      if (userCart) {
+        const cartItem = await this.cartItemRepository.findOne({
+          where: { 
+            cartId: userCart.id,
+            productId: id 
+          }
+        });
+        inCart = !!cartItem;
+      }
+    }
+
+    const baseDetails = this.mapToDetailsResponseDto(product);
+    
+    return {
+      ...baseDetails,
+      inCart
+    };
   }
 
   update(id: number, updateProductDto: UpdateProductDto) {
