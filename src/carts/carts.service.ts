@@ -57,6 +57,9 @@ export class CartsService {
   }
 
   async calculateTotal(cart: Cart): Promise<number> {
+    if (!cart || !cart.cartItems || cart.cartItems.length === 0) {
+      return 0;
+    }
     return cart.cartItems.reduce((total, item) => {
       return total + (item.quantity * parseFloat(item.product.price));
     }, 0);

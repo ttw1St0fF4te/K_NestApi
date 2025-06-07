@@ -17,6 +17,17 @@ export class CartsController {
     }
 
     const cart = await this.cartsService.findByUserId(session.passport.user.id);
+    
+    // Если корзина не найдена, возвращаем пустую корзину
+    if (!cart) {
+      return {
+        id: 0,
+        userId: session.passport.user.id,
+        cartItems: [],
+        totalAmount: 0
+      };
+    }
+
     const totalAmount = await this.cartsService.calculateTotal(cart);
 
     return {

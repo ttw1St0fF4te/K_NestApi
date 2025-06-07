@@ -46,10 +46,10 @@ export class OrdersService {
     }
 
     const totalAmount = await this.cartsService.calculateTotal(cart);
-    const totalSpent = user.totalSpent ?? 0;
+    const totalSpent = parseFloat(user.totalSpent?.toString() ?? '0');
     const loyaltyLevel = this.getLoyaltyLevel(totalSpent);
     const canUseWallet = !!loyaltyLevel;
-    const walletBalance = user.walletBalance ?? 0;
+    const walletBalance = parseFloat(user.walletBalance?.toString() ?? '0');
     const potentialEarnings = canUseWallet ? totalAmount * this.getCashbackPercent(loyaltyLevel) : 0;
 
     return {
@@ -93,17 +93,19 @@ export class OrdersService {
     let finalAmount = totalAmount;
 
     // Обработка виртуального кошелька
-    const totalSpent = user.totalSpent ?? 0;
-    const loyaltyLevel = this.getLoyaltyLevel(totalSpent);
+    const currentTotalSpent = parseFloat(user.totalSpent?.toString() ?? '0');
+    const loyaltyLevel = this.getLoyaltyLevel(currentTotalSpent);
     if (loyaltyLevel) {
+      const currentWalletBalance = parseFloat(user.walletBalance?.toString() ?? '0');
+      
       if (createOrderDto.useWallet) {
-        walletUsed = Math.min(user.walletBalance ?? 0, totalAmount);
+        walletUsed = Math.min(currentWalletBalance, totalAmount);
         finalAmount = totalAmount - walletUsed;
-        user.walletBalance = user.walletBalance ? user.walletBalance - walletUsed : 0;
+        user.walletBalance = parseFloat((currentWalletBalance - walletUsed).toFixed(2));
       } else {
         const cashbackPercent = this.getCashbackPercent(loyaltyLevel);
         walletEarned = totalAmount * cashbackPercent;
-        user.walletBalance = (user.walletBalance ?? 0) + walletEarned;
+        user.walletBalance = parseFloat((currentWalletBalance + walletEarned).toFixed(2));
       }
     }
 
@@ -123,6 +125,7 @@ export class OrdersService {
     await this.orderRepository.save(order);
 
     // Создание элементов заказа
+    const orderItems: OrderItem[] = [];
     for (const cartItem of cart.cartItems) {
       const orderItem = this.orderItemRepository.create({
         orderId: order.id,
@@ -130,21 +133,31 @@ export class OrdersService {
         quantity: cartItem.quantity,
         priceAtOrder: cartItem.product.price
       });
-      await this.orderItemRepository.save(orderItem);
+      const savedOrderItem = await this.orderItemRepository.save(orderItem);
+      orderItems.push(savedOrderItem);
     }
 
-    // Обновление данных пользователя
-    user.totalSpent = (user.totalSpent ?? 0) + finalAmount;
-    user.loyaltyLevel = this.getLoyaltyLevel(user.totalSpent ?? 0);
+    // Обновление данных пользователя - добавляем finalAmount (реально оплаченную сумму)
+    // Правильно работаем с DECIMAL полями
+    const newTotalSpent = currentTotalSpent + finalAmount;
+    user.totalSpent = parseFloat(newTotalSpent.toFixed(2));
+    user.loyaltyLevel = this.getLoyaltyLevel(user.totalSpent);
     await this.userRepository.save(user);
 
     // Удаление корзины
     await this.cartRepository.remove(cart);
 
+    // Загружаем заказ с элементами для отправки email
+    const orderWithItems = await this.orderRepository.findOne({
+      where: { id: order.id },
+      relations: ['orderItems', 'orderItems.product']
+    });
+
     // Отправка email с подтверждением
     try {
-      await this.emailService.sendOrderConfirmation(user.email, order);
+      await this.emailService.sendOrderConfirmation(user.email, orderWithItems);
     } catch (error) {
+      console.error('❌ Ошибка отправки email на', user.email, 'для заказа #' + order.id + ':', error);
       console.error('Ошибка отправки email:', error);
     }
 

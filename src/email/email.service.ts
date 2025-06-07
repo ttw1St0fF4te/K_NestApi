@@ -140,14 +140,22 @@ export class EmailService {
     sb.push('</thead>');
     sb.push('<tbody>');
 
-    for (const item of order.orderItems) {
-      const itemPrice = parseFloat(item.priceAtOrder);
-      const itemTotal = item.quantity * itemPrice;
+    // Проверяем, что orderItems существует и является массивом
+    if (order.orderItems && Array.isArray(order.orderItems)) {
+      for (const item of order.orderItems) {
+        const itemPrice = parseFloat(item.priceAtOrder);
+        const itemTotal = item.quantity * itemPrice;
+        sb.push('<tr>');
+        sb.push(`<td style="padding: 10px; border-bottom: 1px solid #f1f3f4;">${item.product?.name || 'Товар'}</td>`);
+        sb.push(`<td style="text-align: center; padding: 10px; border-bottom: 1px solid #f1f3f4;">${item.quantity} шт.</td>`);
+        sb.push(`<td style="text-align: right; padding: 10px; border-bottom: 1px solid #f1f3f4;">${itemPrice.toFixed(2)} ₽</td>`);
+        sb.push(`<td style="text-align: right; padding: 10px; border-bottom: 1px solid #f1f3f4;"><strong>${itemTotal.toFixed(2)} ₽</strong></td>`);
+        sb.push('</tr>');
+      }
+    } else {
+      // Если orderItems недоступен, показываем заглушку
       sb.push('<tr>');
-      sb.push(`<td style="padding: 10px; border-bottom: 1px solid #f1f3f4;">${item.product.name}</td>`);
-      sb.push(`<td style="text-align: center; padding: 10px; border-bottom: 1px solid #f1f3f4;">${item.quantity} шт.</td>`);
-      sb.push(`<td style="text-align: right; padding: 10px; border-bottom: 1px solid #f1f3f4;">${itemPrice.toFixed(2)} ₽</td>`);
-      sb.push(`<td style="text-align: right; padding: 10px; border-bottom: 1px solid #f1f3f4;"><strong>${itemTotal.toFixed(2)} ₽</strong></td>`);
+      sb.push('<td colspan="4" style="text-align: center; padding: 20px; color: #6c757d;">Информация о товарах временно недоступна</td>');
       sb.push('</tr>');
     }
 
