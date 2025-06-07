@@ -158,6 +158,12 @@ export class ProductsService {
       }
     })) || [];
 
+    // Вычисляем средний рейтинг и количество отзывов
+    const reviewsCount = reviews.length;
+    const averageRating = reviewsCount > 0 
+      ? Math.round((reviews.reduce((sum, review) => sum + review.rating, 0) / reviewsCount) * 10) / 10 
+      : 0;
+
     return {
       id: product.id,
       name: product.name,
@@ -165,7 +171,9 @@ export class ProductsService {
       price: parseFloat(product.price),
       image: product.image,
       description: product.description,
-      reviews
+      reviews,
+      averageRating,
+      reviewsCount
     };
   }
 }
