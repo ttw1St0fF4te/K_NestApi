@@ -1,8 +1,8 @@
-import { IsOptional, IsString, IsEnum } from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsNumberString } from 'class-validator';
 
 export enum SortBy {
   PRICE = 'price',
-  DATE = 'date',
+  ID = 'id',
   NAME = 'name'
 }
 
@@ -14,13 +14,25 @@ export enum SortOrder {
 export class CatalogQueryDto {
   @IsOptional()
   @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsString()
   searchTerm?: string;
 
   @IsOptional()
   @IsEnum(SortBy)
-  sortBy?: SortBy;
+  sortBy?: SortBy = SortBy.ID;
 
   @IsOptional()
   @IsEnum(SortOrder)
-  sortOrder?: SortOrder = SortOrder.ASC;
+  sortOrder?: SortOrder = SortOrder.DESC;
+
+  @IsOptional()
+  @IsNumberString()
+  page?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  limit?: string;
 }

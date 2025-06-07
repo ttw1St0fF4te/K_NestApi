@@ -22,21 +22,31 @@ export class ProductsController {
   @Get('catalog')
   async getCatalog(@Query() query: CatalogQueryDto): Promise<{
     products: ProductResponseDto[];
-    hasResults: boolean;
-    isSearching: boolean;
-    searchTerm?: string;
-    sortBy?: string;
-    sortOrder?: string;
+    total: number;
+    page: number;
+    totalPages: number;
   }> {
+    // Обрабатываем search как searchTerm для совместимости с Flutter
+    if (query.search && !query.searchTerm) {
+      query.searchTerm = query.search;
+    }
+
+    const page = query.page ? parseInt(query.page) : 1;
+    const limit = query.limit ? parseInt(query.limit) : 10;
+    
     const products = await this.productsService.findAll(query);
     
+    // Простая пагинация на уровне контроллера
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedProducts = products.slice(startIndex, endIndex);
+    const totalPages = Math.ceil(products.length / limit);
+    
     return {
-      products,
-      hasResults: products.length > 0,
-      isSearching: !!query.searchTerm,
-      searchTerm: query.searchTerm,
-      sortBy: query.sortBy,
-      sortOrder: query.sortOrder,
+      products: paginatedProducts,
+      total: products.length,
+      page: page,
+      totalPages: totalPages,
     };
   }
 

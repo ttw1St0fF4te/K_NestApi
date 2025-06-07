@@ -45,7 +45,7 @@ export class ProductsService {
         case SortBy.PRICE:
           queryBuilder.orderBy('CAST(product.price AS DECIMAL)', sortOrder);
           break;
-        case SortBy.DATE:
+        case SortBy.ID:
           queryBuilder.orderBy('product.id', sortOrder);
           break;
         case SortBy.NAME:
