@@ -22,19 +22,37 @@ export class FavoritesController {
     if (!userId) {
       throw new Error('Пользователь не найден в сессии');
     }
-    return this.favoritesService.toggle(userId, toggleFavoriteDto.productId);
+    const result = await this.favoritesService.toggle(userId, toggleFavoriteDto.productId);
+    
+    // Преобразуем результат в формат, ожидаемый Flutter
+    return {
+      message: result.message,
+      isInFavorites: result.action === 'added'
+    };
   }
 
   // GET /favorites - получить избранное текущего пользователя (аналог Index)
   @Get()
   async getUserFavorites(
     @Req() req: Request
-  ): Promise<FavoriteResponseDto[]> {
+  ) {
     const userId = (req.user as any)?.id; // Получаем userId из сессии
     if (!userId) {
       throw new Error('Пользователь не найден в сессии');
     }
-    return this.favoritesService.findUserFavorites(userId);
+    const favorites = await this.favoritesService.findUserFavorites(userId);
+    
+    // Преобразуем в формат, ожидаемый Flutter
+    return favorites.map(favorite => ({
+      id: favorite.id,
+      product: {
+        id: favorite.product.id,
+        name: favorite.product.name,
+        price: favorite.product.price,
+        image: favorite.product.image,
+        category: favorite.product.category
+      }
+    }));
   }
 
 }
