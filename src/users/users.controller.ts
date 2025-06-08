@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, HttpCode, HttpStatus, Res, Request, UseGuards, Param, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, HttpCode, HttpStatus, Res, Request, UseGuards, Param, Put, Query } from '@nestjs/common';
 import { Response } from 'express';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -22,8 +22,10 @@ export class UsersController {
 
   @UseGuards(AuthenticatedGuard)
   @Get('order-history')
-  async getOrderHistory(@Request() req) {
-    return this.usersService.getOrderHistory(req.user.id);
+  async getOrderHistory(@Request() req, @Query('page') page?: string, @Query('limit') limit?: string) {
+    const pageNumber = page ? parseInt(page, 10) : 1;
+    const limitNumber = limit ? parseInt(limit, 10) : 10;
+    return this.usersService.getOrderHistory(req.user.id, pageNumber, limitNumber);
   }
 
   @Post('register')

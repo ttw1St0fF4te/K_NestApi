@@ -109,18 +109,41 @@ export class UsersService {
     return result;
   }
 
-  async getOrderHistory(userId: number) {
+  async getOrderHistory(userId: number, page: number = 1, limit: number = 10) {
+    // First check if user exists
     const user = await this.usersRepository.findOne({
-      where: { id: userId },
-      relations: ['orders', 'orders.orderItems', 'orders.orderItems.product']
+      where: { id: userId }
     });
 
     if (!user) {
       throw new NotFoundException('Пользователь не найден');
     }
 
+    // Calculate offset for pagination
+    const offset = (page - 1) * limit;
+
+    // Get total count of orders for this user
+    const totalCount = await this.ordersRepository.count({
+      where: { userId }
+    });
+
+    // Get orders with pagination
+    const orders = await this.ordersRepository.find({
+      where: { userId },
+      relations: ['orderItems', 'orderItems.product'],
+      order: { orderDate: 'DESC' },
+      skip: offset,
+      take: limit
+    });
+
+    const hasMore = offset + orders.length < totalCount;
+
     return {
-      orders: user.orders,
+      orders: orders,
+      hasMore: hasMore,
+      totalCount: totalCount,
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit),
       hasWallet: user.totalSpent ? user.totalSpent >= 30000 : false
     };
   }
