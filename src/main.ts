@@ -41,6 +41,10 @@ async function bootstrap() {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  await app.listen(process.env.PORT || 3000);
+  const port = process.env.PORT || 3000;
+  const host = process.env.HOST || '0.0.0.0'; // Слушаем на всех интерфейсах
+  
+  await app.listen(port, host);
+  console.log(`Server is running on http://${host}:${port}`);
 }
 bootstrap();
